@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+# Create non-root user at uid 1000 — matches the --user flag in the runner
+RUN groupadd --gid 1000 sandbox \
+    && useradd --uid 1000 --gid 1000 --no-create-home --shell /bin/sh sandbox
+
+# Install common scientific/utility packages so candidates can import them
+# without getting ModuleNotFoundError. Add packages here as needed.
+RUN pip install --no-cache-dir \
+    numpy==1.26.4 \
+    pandas==2.2.2 \
+    scipy==1.13.1 \
+    requests==2.32.3 \
+    matplotlib==3.9.0 \
+    sympy==1.12 \
+    Pillow==10.3.0 \
+    regex==2024.5.15
+
+WORKDIR /sandbox
+USER 1000

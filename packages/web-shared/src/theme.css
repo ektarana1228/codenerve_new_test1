@@ -1,0 +1,101 @@
+/* apexcoder design system - tokens + motion. See design.md.
+   Shared by web-candidate and web-admin. Dark is default; [data-theme="light"] overrides.
+   Fonts reuse the already-loaded Plus Jakarta Sans + JetBrains Mono (Geist substitutes). */
+
+:root {
+  color-scheme: dark;
+  /* neutrals */
+  --bg-canvas: #0a0b0e; --bg-raised: #131418; --bg-overlay: #1a1c21; --bg-inset: #08090b;
+  --border-subtle: #24262c; --border-strong: #34373e;
+  --text-primary: #f5f6f7; --text-secondary: #c6cad1; --text-muted: #868b94;
+  /* signals - green = code correctness, violet = AI usage (reserved, semantic) */
+  --signal-green: #57d98a; --signal-green-dim: #1e3a2b;
+  --signal-violet: #8b7bff; --signal-violet-dim: #241f42;
+  /* status */
+  --status-fail: #ff6b6b; --status-fail-dim: #3a1f22; --status-warn: #f5b84e; --status-warn-dim: #3a2f16; --status-link: #6ba9ff;
+  --shadow-float: 0 0 0 1px rgba(0, 0, 0, .6), 0 8px 24px rgba(0, 0, 0, .35);
+
+  /* theme-invariant */
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --r-card: 10px; --r-control: 8px; --r-pill: 9999px; --r-well: 6px;
+
+  /* motion */
+  --dur-1: 120ms; --dur-2: 200ms; --dur-3: 320ms; --dur-4: 600ms;
+  --ease-out: cubic-bezier(.22, .61, .36, 1);
+  --ease-inout: cubic-bezier(.65, .05, .36, 1);
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg-canvas: #fbfbfc; --bg-raised: #ffffff; --bg-overlay: #ffffff; --bg-inset: #f1f2f5;
+  --border-subtle: #e7e9ed; --border-strong: #cdd2da;
+  --text-primary: #14161a; --text-secondary: #454a52; --text-muted: #71767f;
+  --signal-green: #12874a; --signal-green-dim: #e3f6ec;
+  --signal-violet: #5b4bd6; --signal-violet-dim: #ece9fd;
+  --status-fail: #d93a3f; --status-fail-dim: #fceaea; --status-warn: #b7791a; --status-warn-dim: #fbf1dd; --status-link: #2b6cf3;
+  --shadow-float: 0 1px 2px rgba(16, 18, 22, .06), 0 8px 24px rgba(16, 18, 22, .10);
+}
+
+/* smooth theme switch */
+body { transition: background-color var(--dur-2), color var(--dur-2); }
+html { scroll-behavior: smooth; }
+
+/* Consistent, smooth feedback on every interactive element (one place, reused). */
+a, button, input, textarea, select, [role="tab"], [role="button"] {
+  transition: background-color var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out),
+    color var(--dur-1) var(--ease-out), box-shadow var(--dur-1) var(--ease-out),
+    opacity var(--dur-1) var(--ease-out), transform var(--dur-1) var(--ease-out);
+}
+
+/* --- signature motion (design.md §8) --- */
+@keyframes ax-thinking { 0%, 100% { opacity: .3 } 50% { opacity: 1 } }
+@keyframes ax-rise-in { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+@keyframes ax-breathe { 0%, 100% { opacity: 1 } 50% { opacity: .45 } }
+@keyframes ax-blip { 0% { transform: scale(.4); opacity: 0 } 40% { opacity: 1 } 100% { transform: scale(1); opacity: 1 } }
+
+/* dockview docking chrome - blend with our tokens (both themes). */
+.ax-dock {
+  --dv-group-view-background-color: var(--bg-raised);
+  --dv-tabs-and-actions-container-background-color: var(--bg-inset);
+  --dv-activegroup-visiblepanel-tab-background-color: var(--bg-canvas);
+  --dv-activegroup-visiblepanel-tab-color: var(--text-primary);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--bg-raised);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--text-muted);
+  --dv-activegroup-hiddenpanel-tab-background-color: var(--bg-raised);
+  --dv-activegroup-hiddenpanel-tab-color: var(--text-muted);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--bg-raised);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--text-muted);
+  --dv-separator-border: var(--border-subtle);
+  --dv-tab-divider-color: var(--border-subtle);
+  --dv-sash-color: transparent;
+  --dv-active-sash-color: var(--signal-violet);
+  --dv-paneview-active-outline-color: var(--signal-violet);
+  --dv-drag-over-background-color: var(--signal-violet-dim);
+  --dv-tab-font-size: 12px;
+}
+
+/* revolving brand cube (SpinningCube) */
+@keyframes ax-cube-spin { from { transform: rotateX(-22deg) rotateY(0); } to { transform: rotateX(-22deg) rotateY(360deg); } }
+.ax-cube { animation: ax-cube-spin 9s linear infinite; }
+
+.ax-thinking-dot { animation: ax-thinking 1.2s var(--ease-inout) infinite; }
+.ax-thinking-dot:nth-child(2) { animation-delay: .15s; }
+.ax-thinking-dot:nth-child(3) { animation-delay: .3s; }
+.ax-rise-in { animation: ax-rise-in var(--dur-2) var(--ease-out) both; }
+.ax-breathe { animation: ax-breathe 1s ease-in-out infinite; }
+.ax-blip { animation: ax-blip var(--dur-1) var(--ease-spring) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
+  .ax-thinking-dot, .ax-rise-in, .ax-breathe, .ax-blip { animation: none !important; }
+  /* Cube rests facing front instead of spinning. */
+  .ax-cube { animation: none !important; transform: rotateX(-22deg) rotateY(-24deg); }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,227 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 1160" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif">
+  <style>
+    .box rect { stroke-width: 1.5; }
+    .title { font-size: 13px; font-weight: 700; fill: #0f1115; }
+    .sub { font-size: 10.5px; fill: #5b6270; }
+    .tag { font-size: 9.5px; font-weight: 700; letter-spacing: .03em; }
+    .lane-head { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; fill: #5b6270; }
+    .edge { stroke: #94a3b8; stroke-width: 1.8; fill: none; }
+  </style>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1140" height="1160" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="40" y="34" font-size="19" font-weight="700" fill="#0f1115">AI Solution Workflow — ApexCoder</text>
+  <text x="40" y="55" font-size="12.5" fill="#5b6270">Every path that calls an LLM: the candidate's chat assistant, and AI-assisted grading after submit.</text>
+
+  <!-- ═══ Lane headers ═══ -->
+  <text class="lane-head" x="40" y="105">1 · Candidate AI Assistant — during the live session</text>
+  <text class="lane-head" x="620" y="105">2 · Grading — after Submit</text>
+
+  <!-- ═══════════════════════ LEFT LANE: Candidate chat ═══════════════════════ -->
+
+  <!-- L1 -->
+  <g class="box">
+    <rect x="40" y="116" width="480" height="60" rx="9" fill="#eef2ff" stroke="#6366f1"/>
+    <text class="title" x="58" y="141">Candidate types a prompt</text>
+    <text class="sub" x="58" y="159">in the IDE chat panel (web-candidate)</text>
+  </g>
+  <path class="edge" d="M280,176 L280,206" marker-end="url(#ah)"/>
+
+  <!-- L2 -->
+  <g class="box">
+    <rect x="40" y="206" width="480" height="54" rx="9" fill="#f5f3ff" stroke="#8b5cf6"/>
+    <text class="title" x="58" y="231">POST /api/v1/llm/chat</text>
+    <text class="sub" x="58" y="248">→ api-llm-gateway (the only service that talks to OpenRouter)</text>
+  </g>
+  <path class="edge" d="M280,260 L280,290" marker-end="url(#ah)"/>
+
+  <!-- L3 -->
+  <g class="box">
+    <rect x="40" y="290" width="480" height="64" rx="9" fill="#ffffff" stroke="#cbd5e1"/>
+    <text class="title" x="58" y="313">Redis: rate-limit check</text>
+    <text class="sub" x="58" y="330">≤ 60 requests / session</text>
+    <text class="sub" x="58" y="345" fill="#b45309">429 RATE_LIMITED if exceeded — stops here</text>
+  </g>
+  <path class="edge" d="M280,354 L280,384" marker-end="url(#ah)"/>
+
+  <!-- L4 -->
+  <g class="box">
+    <rect x="40" y="384" width="480" height="54" rx="9" fill="#f5f3ff" stroke="#8b5cf6"/>
+    <text class="title" x="58" y="409">Decrypt OpenRouter API key in memory</text>
+    <text class="sub" x="58" y="426">never logged, discarded immediately after use</text>
+  </g>
+  <path class="edge" d="M280,438 L280,468" marker-end="url(#ah)"/>
+
+  <!-- L5 -->
+  <g class="box">
+    <rect x="40" y="468" width="480" height="60" rx="9" fill="#f5f3ff" stroke="#8b5cf6"/>
+    <text class="title" x="58" y="493">Forward prompt + last 10 turns</text>
+    <text class="sub" x="58" y="511">of session context as the conversation history</text>
+  </g>
+  <path class="edge" d="M280,528 L280,558" marker-end="url(#ah)"/>
+
+  <!-- L6: OpenRouter -->
+  <g class="box">
+    <rect x="40" y="558" width="480" height="64" rx="9" fill="#fffbeb" stroke="#d97706" stroke-dasharray="6 4"/>
+    <text class="title" x="58" y="583">OpenRouter API (external)</text>
+    <text class="sub" x="58" y="600">candidate's chosen model generates the reply</text>
+    <text class="sub" x="58" y="614" fill="#b45309">shared with the PROJECT-grading call below</text>
+  </g>
+  <path class="edge" d="M280,622 L280,652" marker-end="url(#ah)"/>
+
+  <!-- L7 -->
+  <g class="box">
+    <rect x="40" y="652" width="480" height="60" rx="9" fill="#ecfdf5" stroke="#059669"/>
+    <text class="title" x="58" y="677">Response streamed back</text>
+    <text class="sub" x="58" y="695">to the candidate's chat UI</text>
+  </g>
+  <path class="edge" d="M280,712 L280,742" marker-end="url(#ah)"/>
+
+  <!-- L8 -->
+  <g class="box">
+    <rect x="40" y="742" width="480" height="70" rx="9" fill="#ffffff" stroke="#cbd5e1" stroke-dasharray="5 4"/>
+    <text class="title" x="58" y="766">Async: log prompt + response</text>
+    <text class="sub" x="58" y="783">→ interaction_logs (Postgres)</text>
+    <text class="sub" x="58" y="798" fill="#5b6270">fire-and-forget — never blocks the reply above</text>
+  </g>
+
+  <!-- ═══════════════════════ RIGHT LANE: Grading ═══════════════════════ -->
+
+  <!-- R1 -->
+  <g class="box">
+    <rect x="620" y="116" width="480" height="60" rx="9" fill="#eef2ff" stroke="#6366f1"/>
+    <text class="title" x="638" y="141">Candidate clicks Submit</text>
+    <text class="sub" x="638" y="159">session locks; no further edits accepted</text>
+  </g>
+  <path class="edge" d="M860,176 L860,206" marker-end="url(#ah)"/>
+
+  <!-- R2 -->
+  <g class="box">
+    <rect x="620" y="206" width="480" height="64" rx="9" fill="#ffffff" stroke="#cbd5e1"/>
+    <text class="title" x="638" y="229">Sandbox runner executes code</text>
+    <text class="sub" x="638" y="246">vs. all test cases → codeCorrectnessScore</text>
+    <text class="sub" x="638" y="261" fill="#5b6270">no AI — ephemeral, network-isolated Docker container</text>
+  </g>
+  <path class="edge" d="M860,270 L860,300" marker-end="url(#ah)"/>
+
+  <!-- R3 -->
+  <g class="box">
+    <rect x="620" y="300" width="480" height="54" rx="9" fill="#ffffff" stroke="#cbd5e1"/>
+    <text class="title" x="638" y="323">Session → SUBMITTED</text>
+    <text class="sub" x="638" y="340">AIU scoring job enqueued (Redis / BullMQ)</text>
+  </g>
+  <path class="edge" d="M860,354 L860,384" marker-end="url(#ah)"/>
+
+  <!-- R4 -->
+  <g class="box">
+    <rect x="620" y="384" width="480" height="54" rx="9" fill="#ffffff" stroke="#cbd5e1"/>
+    <text class="title" x="638" y="407">worker-aiu picks up the job</text>
+    <text class="sub" x="638" y="424">branches on assessment.kind — target: &lt;30s</text>
+  </g>
+
+  <!-- fork -->
+  <path class="edge" d="M860,438 L732,476" marker-end="url(#ah)"/>
+  <path class="edge" d="M860,438 L987,476" marker-end="url(#ah)"/>
+
+  <!-- Sub-lane headers -->
+  <text class="lane-head" x="620" y="466" font-size="10.5">CODING assessments</text>
+  <text class="lane-head" x="875" y="466" font-size="10.5">PROJECT assessments</text>
+
+  <!-- C1: heuristic scorers -->
+  <g class="box">
+    <rect x="620" y="476" width="225" height="110" rx="9" fill="#f1f5f9" stroke="#64748b"/>
+    <text class="title" x="634" y="498" font-size="12">4 heuristic AIU scorers</text>
+    <text class="sub" x="634" y="514">read interaction_logs:</text>
+    <text class="sub" x="634" y="529">prompt_quality · iteration_efficiency</text>
+    <text class="sub" x="634" y="543">independent_editing · contextual_relevance</text>
+    <rect x="634" y="552" width="128" height="17" rx="8.5" fill="#e2e8f0"/>
+    <text class="tag" x="641" y="564" fill="#334155">RULE-BASED — NO LLM CALL</text>
+  </g>
+  <path class="edge" d="M732,586 L732,810" marker-end="url(#ah)"/>
+
+  <!-- P1 -->
+  <g class="box">
+    <rect x="875" y="476" width="225" height="80" rx="9" fill="#f5f3ff" stroke="#8b5cf6"/>
+    <text class="title" x="889" y="498" font-size="12">scoreProject()</text>
+    <text class="sub" x="889" y="513">builds a judge prompt from the</text>
+    <text class="sub" x="889" y="526">task, reference/solution files,</text>
+    <text class="sub" x="889" y="539">and scoring criteria</text>
+  </g>
+  <path class="edge" d="M987,556 L987,566" marker-end="url(#ah)"/>
+
+  <!-- P2 -->
+  <g class="box">
+    <rect x="875" y="566" width="225" height="54" rx="9" fill="#f5f3ff" stroke="#8b5cf6"/>
+    <text class="title" x="889" y="588" font-size="12">POST /api/v1/llm/judge</text>
+    <text class="sub" x="889" y="603">→ api-llm-gateway, internal</text>
+  </g>
+  <path class="edge" d="M987,620 L987,630" marker-end="url(#ah)"/>
+
+  <!-- P3: OpenRouter #2 -->
+  <g class="box">
+    <rect x="875" y="630" width="225" height="64" rx="9" fill="#fffbeb" stroke="#d97706" stroke-dasharray="6 4"/>
+    <text class="title" x="889" y="652" font-size="12">OpenRouter API</text>
+    <text class="sub" x="889" y="667">(external)</text>
+    <text class="sub" x="889" y="680" fill="#b45309">same endpoint as the chat assistant</text>
+  </g>
+  <path class="edge" d="M987,694 L987,704" marker-end="url(#ah)"/>
+
+  <!-- P4 -->
+  <g class="box">
+    <rect x="875" y="704" width="225" height="70" rx="9" fill="#ecfdf5" stroke="#059669"/>
+    <text class="title" x="889" y="726" font-size="12">LLM returns:</text>
+    <text class="sub" x="889" y="740">codeCorrectnessScore +</text>
+    <text class="sub" x="889" y="753">per-criterion projectScores</text>
+  </g>
+  <path class="edge" d="M987,774 L987,810" marker-end="url(#ah)"/>
+
+  <!-- R5: converge -->
+  <g class="box">
+    <rect x="620" y="810" width="480" height="60" rx="9" fill="#ffffff" stroke="#cbd5e1"/>
+    <text class="title" x="638" y="833">Compute totalScore</text>
+    <text class="sub" x="638" y="850">CODING: codeWeight·code + aiuWeight·AIU · PROJECT: the LLM-judged score is used directly</text>
+  </g>
+  <path class="edge" d="M860,870 L860,884" marker-end="url(#ah)"/>
+
+  <!-- R6 -->
+  <g class="box">
+    <rect x="620" y="884" width="480" height="54" rx="9" fill="#ecfdf5" stroke="#059669"/>
+    <text class="title" x="638" y="907">Persist SessionScore</text>
+    <text class="sub" x="638" y="924">→ PostgreSQL</text>
+  </g>
+  <path class="edge" d="M860,938 L860,952" marker-end="url(#ah)"/>
+
+  <!-- R7: hard rule -->
+  <g class="box">
+    <rect x="620" y="952" width="480" height="70" rx="9" fill="#fef2f2" stroke="#dc2626"/>
+    <text class="title" x="638" y="976" fill="#991b1b">Never shown to the candidate</text>
+    <text class="sub" x="638" y="993" fill="#991b1b">visible only to Admin, via Reports / Leaderboard</text>
+  </g>
+
+  <!-- ═══ Legend ═══ -->
+  <g font-size="11" fill="#5b6270">
+    <rect x="40" y="1060" width="14" height="14" rx="3" fill="#eef2ff" stroke="#6366f1"/>
+    <text x="60" y="1071">Candidate action</text>
+
+    <rect x="200" y="1060" width="14" height="14" rx="3" fill="#f5f3ff" stroke="#8b5cf6"/>
+    <text x="220" y="1071">AI gateway call</text>
+
+    <rect x="360" y="1060" width="14" height="14" rx="3" fill="#fffbeb" stroke="#d97706" stroke-dasharray="4 3"/>
+    <text x="380" y="1071">OpenRouter (external)</text>
+
+    <rect x="560" y="1060" width="14" height="14" rx="3" fill="#f1f5f9" stroke="#64748b"/>
+    <text x="580" y="1071">Rule-based (no AI)</text>
+
+    <rect x="740" y="1060" width="14" height="14" rx="3" fill="#ecfdf5" stroke="#059669"/>
+    <text x="760" y="1071">Result delivered / stored</text>
+
+    <rect x="940" y="1060" width="14" height="14" rx="3" fill="#fef2f2" stroke="#dc2626"/>
+    <text x="960" y="1071">Hard rule</text>
+  </g>
+</svg>

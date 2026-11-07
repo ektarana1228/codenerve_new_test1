@@ -1,0 +1,8 @@
+FROM node:20-slim
+
+# node:20-slim ships with a 'node' user at uid/gid 1000 — reuse it
+# tsx enables TypeScript execution without a pre-compile step
+RUN npm install -g tsx typescript
+
+WORKDIR /sandbox
+USER node

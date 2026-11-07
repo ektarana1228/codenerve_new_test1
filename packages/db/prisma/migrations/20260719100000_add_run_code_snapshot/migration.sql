@@ -1,0 +1,1 @@
+ALTER TABLE "RunEvent" ADD COLUMN "codeSnapshot" TEXT NOT NULL DEFAULT '';

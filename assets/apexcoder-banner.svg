@@ -1,0 +1,29 @@
+<svg width="520" height="96" viewBox="0 0 520 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="apexcoder.io">
+  <defs>
+    <linearGradient id="top" x1="8" y1="6" x2="40" y2="24" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="side" x1="8" y1="14" x2="24" y2="42" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#D946EF"/>
+    </linearGradient>
+    <linearGradient id="front" x1="24" y1="16" x2="40" y2="42" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <style>
+      .word { fill: #0f172a; }
+      .tld  { fill: #3b82f6; }
+      @media (prefers-color-scheme: dark) { .word { fill: #f1f5f9; } }
+    </style>
+  </defs>
+  <g transform="translate(20 14) scale(1.4)">
+    <path d="M24 5 41 14.5 24 24 7 14.5 24 5Z" fill="url(#top)"/>
+    <path d="M7 14.5 24 24v18.5L7 33V14.5Z" fill="url(#side)"/>
+    <path d="M41 14.5 24 24v18.5L41 33V14.5Z" fill="url(#front)"/>
+  </g>
+  <text x="98" y="61" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="42" font-weight="800" letter-spacing="-1">
+    <tspan class="word">apexcoder</tspan><tspan class="tld">.io</tspan>
+  </text>
+</svg>

@@ -1,0 +1,25 @@
+{
+  "name": "aisd-ss26-group-12",
+  "private": true,
+  "packageManager": "npm@11.12.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "sandbox/runner"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:admin": "npm run dev -w @aisd/web-admin",
+    "dev:candidate": "npm run dev -w @aisd/web-candidate",
+    "backend": "node -e \"const fs=require('fs');const p='packages/db/.env';if(!fs.existsSync(p))fs.copyFileSync(p+'.example',p)\" && docker compose up -d --wait postgres redis && npm run db:generate -w @platform/db && npm run db:migrate:deploy -w @platform/db && npm run db:seed -w @platform/db && docker compose up -d",
+    "backend:down": "docker compose down",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "test:e2e": "npm run test --workspace=packages/e2e"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  }
+}

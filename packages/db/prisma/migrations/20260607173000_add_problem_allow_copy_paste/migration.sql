@@ -1,0 +1,2 @@
+ALTER TABLE "Problem"
+ADD COLUMN "allowCopyPaste" BOOLEAN NOT NULL DEFAULT false;

@@ -1,0 +1,1 @@
+ALTER TABLE "Assessment" ADD COLUMN "scoringStrictness" TEXT NOT NULL DEFAULT 'MEDIUM';

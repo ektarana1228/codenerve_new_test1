@@ -1,0 +1,27 @@
+{
+  "admin": {
+    "email": "e2e-admin@test.local",
+    "password": "TestAdmin1!",
+    "id": "862ff9e2-bc4a-4db0-b7c8-a091e2e82f05"
+  },
+  "standardAssessment": {
+    "id": "b0dd3186-fb2c-422f-a683-b996f951a52a"
+  },
+  "timerAssessment": {
+    "id": "4b8a06a3-7415-4ee5-b1e2-e6abd728fb42"
+  },
+  "scoredAssessment": {
+    "id": "6433a66f-7a29-4259-9de7-8d8e034efbbd",
+    "scoredSessionId": "afed31e1-c04e-466a-890c-4729ba6274a8"
+  },
+  "tokens": {
+    "suite1": "76909e36-9e54-41ca-9309-6a1240b48a3f",
+    "suite3": "7a3c5710-db85-4ba6-80d9-11c60ebc1adb",
+    "suite4": "b7a0de0f-23db-4122-bcb6-ae274bc9eb12",
+    "suite5": "94c742ea-a8ec-4b29-ade8-b4c56c0b962c"
+  },
+  "hiddenSentinels": {
+    "input": "E2E_HIDDEN_INPUT_SENTINEL_XK9",
+    "output": "E2E_HIDDEN_OUTPUT_SENTINEL_XK9"
+  }
+}

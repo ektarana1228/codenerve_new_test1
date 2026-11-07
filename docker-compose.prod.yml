@@ -1,0 +1,176 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: platform
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api-core:
+    build:
+      context: .
+      dockerfile: apps/api-core/Dockerfile
+      target: production
+    restart: unless-stopped
+    user: root
+    ports:
+      - "127.0.0.1:3101:3101"
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/platform
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      PORT: "3101"
+      APP_BASE_URL: ${APP_BASE_URL}
+      ADMIN_BASE_URL: ${ADMIN_BASE_URL}
+      CANDIDATE_BASE_URL: ${CANDIDATE_BASE_URL}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-assessments@apexcoder.io}
+      TEAM_EMAIL_FROM: ${TEAM_EMAIL_FROM:-team@apexcoder.io}
+      TEAM_SMTP_USER: ${TEAM_SMTP_USER:-}
+      TEAM_SMTP_PASS: ${TEAM_SMTP_PASS:-}
+      SANDBOX_URL: http://localhost:3200
+      PROCTOR_RETENTION_HOURS: ${PROCTOR_RETENTION_HOURS:-72}
+      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-}
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/gcs-service-account.json
+      MASTER_EMAIL: ${MASTER_EMAIL}
+      MASTER_PASSWORD: ${MASTER_PASSWORD}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      OPENROUTER_ENCRYPTION_KEY: ${OPENROUTER_ENCRYPTION_KEY}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./secrets:/run/secrets:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  api-llm-gateway:
+    build:
+      context: .
+      dockerfile: apps/api-llm-gateway/Dockerfile
+      target: production
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3102:3102"
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/platform
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      OPENROUTER_ENCRYPTION_KEY: ${OPENROUTER_ENCRYPTION_KEY}
+      NODE_ENV: production
+      PORT: "3102"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  vscode-orchestrator:
+    build:
+      context: .
+      dockerfile: apps/vscode-orchestrator/Dockerfile
+      target: production
+    restart: unless-stopped
+    user: root
+    ports:
+      - "127.0.0.1:3104:3104"
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/platform
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      OPENROUTER_ENCRYPTION_KEY: ${OPENROUTER_ENCRYPTION_KEY}
+      NODE_ENV: production
+      PORT: "3104"
+      VSCODE_IMAGE: gitpod/openvscode-server:1.102.3
+      VSCODE_PROJECT_IMAGE: aisd/openvscode-opencode:latest
+      VSCODE_MODE: docker
+      VSCODE_NETWORK: aisd_vscode-net
+      VSCODE_PROJECT_NETWORK: aisd_vscode-egress-net
+      VSCODE_MEMORY_MB: "512"
+      VSCODE_CPU_QUOTA: "100000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - default
+      - vscode-net
+      - vscode-egress-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-aiu:
+    build:
+      context: .
+      dockerfile: apps/worker-aiu/Dockerfile
+      target: production
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/platform
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      LLM_GATEWAY_URL: http://api-llm-gateway:3102
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api-llm-gateway:
+        condition: service_started
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./apps/web-candidate/dist:/srv/candidate:ro
+      - ./apps/web-admin/dist:/srv/admin:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api-core
+      - api-llm-gateway
+      - vscode-orchestrator
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  default:
+  vscode-net:
+    name: aisd_vscode-net
+    internal: true
+  vscode-egress-net:
+    name: aisd_vscode-egress-net

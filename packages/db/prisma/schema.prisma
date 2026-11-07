@@ -1,0 +1,394 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  MASTER
+  ADMIN
+  STUDENT
+}
+
+enum AssessmentStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  CLOSED
+}
+
+// CODING  - LeetCode-style: problems + hidden/visible test cases, auto-scored.
+// PROJECT - task/deliverable-based (e.g. "App Migration", "MCP Server"): open-
+//           ended tasks with "Done when" acceptance criteria, a provided template
+//           + allowed models, optional connection details, and a required
+//           submission file list. Not auto-scored on test cases.
+enum AssessmentKind {
+  CODING
+  PROJECT
+}
+
+enum Language {
+  PYTHON
+  JAVASCRIPT
+  TYPESCRIPT
+}
+
+enum AiuMetric {
+  PROMPT_QUALITY
+  ITERATION_EFFICIENCY
+  INDEPENDENT_EDITING
+  CONTEXTUAL_RELEVANCE
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum SessionStatus {
+  PENDING
+  ACTIVE
+  SUBMITTED
+  EXPIRED
+}
+
+enum AdminSignupStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ProctoringMode {
+  OFF
+  OPTIONAL
+  REQUIRED
+}
+
+// Capability level of the candidate-facing AI assistant, set per assessment.
+// AGENTIC     - may traverse the workspace, read/write multiple files, call tools.
+// NON_AGENTIC - chat only: no workspace access, no tools, no auto-apply to the
+//               editor, and therefore no path to test files or hidden test cases.
+// DISABLED    - no assistant at all.
+enum AiAssistantMode {
+  AGENTIC
+  NON_AGENTIC
+  DISABLED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  passwordHash    String?          // null for candidates (no password)
+  role            Role
+  createdAt       DateTime         @default(now())
+  assessments     Assessment[]     // admin only
+  sessions        Session[]        // candidate only
+  libraryProblems LibraryProblem[] // admin only
+}
+
+model InviteToken {
+  id             String     @id @default(uuid())
+  token          String     @unique @default(uuid())
+  assessmentId   String
+  assessment     Assessment @relation(fields: [assessmentId], references: [id])
+  candidateName  String     // admin-assigned label for the candidate slot
+  candidateEmail String?
+  usedAt         DateTime?
+  expiresAt      DateTime   // now + 72 hours on creation
+  createdAt      DateTime   @default(now())
+  session        Session?
+}
+
+model AdminSignupRequest {
+  id           String            @id @default(uuid())
+  email        String
+  fullName     String?
+  companyName  String?
+  passwordHash String
+  status       AdminSignupStatus @default(PENDING)
+  createdAt    DateTime          @default(now())
+  reviewedAt   DateTime?
+
+  @@index([email])
+  @@index([status, createdAt])
+}
+
+model Assessment {
+  id               String           @id @default(uuid())
+  title            String
+  description      String?
+  createdBy        String
+  admin            User             @relation(fields: [createdBy], references: [id])
+  kind             AssessmentKind   @default(CODING)
+  problems         Problem[]
+  tasks            Task[]           // PROJECT kind only
+  timeLimitMinutes Int
+  language         Language
+  llmModel         String           @default("openai/gpt-4o-mini")
+  allowCopyPaste   Boolean          @default(false) // editor clipboard gate, both kinds
+  // Assistant capability level. Recruiter-set at creation; defaults by kind
+  // (CODING -> NON_AGENTIC, PROJECT -> AGENTIC) but is never locked to it.
+  // Column default is the restrictive mode so a row created outside the API
+  // fails closed rather than open.
+  aiAssistantMode  AiAssistantMode  @default(DISABLED)
+  // PROJECT kind - provided template & models, connection details, submission spec.
+  allowedModels    String[]         @default([]) // restricted model list candidates may use
+  templateInfo     String?          // Markdown: "Provided template & models" notes
+  connectionDetails Json?           // [{ label, value }] e.g. API_BASE_URL, CLIENT_ID
+  submissionFiles  Json?            // [{ name, description }] required deliverables
+  referenceFiles   Json?            // [{ path, contentBase64 }] seeded into the candidate's VS Code workspace
+  solutionFiles    Json?            // [{ path, contentBase64 }] admin-only reference fix, used by SQS scoring - never seeded, never returned to any client
+  projectScoringCriteria Json?       // PROJECT scoring criteria [{ key, name, description, weight }]
+  scoringStrictness String           @default("MEDIUM")
+  codeWeight       Int              // 0-100, must sum to 100 with aiuWeight
+  aiuWeight        Int
+  aiuMetrics       AiuMetric[]      // which metrics are active
+  aiuMetricWeights Json             // { prompt_quality: 40, iteration_efficiency: 60 }
+  screenRecording     ProctoringMode @default(OFF)
+  videoProctoring     ProctoringMode @default(OFF)
+  microphoneRecording ProctoringMode @default(OFF)
+  secondCamera        ProctoringMode @default(OFF)
+  status           AssessmentStatus @default(DRAFT)
+  scheduledStart   DateTime?
+  expiresAt        DateTime?
+  createdAt        DateTime         @default(now())
+  inviteTokens     InviteToken[]
+  sessions         Session[]
+}
+
+// A single task/subtask of a PROJECT-kind assessment.
+model Task {
+  id           String     @id @default(uuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  order        Int        // display order within the assessment
+  title        String
+  description  String     // Markdown
+  doneWhen     Json       // string[] - "Done when" acceptance criteria
+  difficulty   Difficulty? // set when sourced from the bug-fix bank; used as the SQS iteration baseline
+  bugBankId    String?     // source bug-fix bank entry id, if any - scopes solutionFiles lookups to this task's file prefix
+  createdAt    DateTime   @default(now())
+
+  @@index([assessmentId])
+}
+
+model Problem {
+  id             String     @id @default(uuid())
+  assessmentId   String
+  assessment     Assessment @relation(fields: [assessmentId], references: [id])
+  title          String
+  description    String     // Markdown
+  difficulty     Difficulty
+  allowCopyPaste Boolean    @default(false)
+  testCases      TestCase[]
+  createdAt      DateTime   @default(now())
+}
+
+model TestCase {
+  id        String   @id @default(uuid())
+  problemId String
+  problem   Problem  @relation(fields: [problemId], references: [id])
+  input     String
+  expected  String
+  isHidden  Boolean  @default(false)
+  category  String   @default("STANDARD")
+  weight    Float    @default(1)
+  isCritical Boolean @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Admin-authored, reusable library entry - the DB-backed counterpart to the
+// static problemBank.ts / projectBugBank.ts. CODING entries carry testCases;
+// PROJECT entries carry doneWhen/referenceFiles/solutionFiles instead. Shared
+// across all admins (no per-owner ACL), same visibility as the static banks.
+model LibraryProblem {
+  id             String            @id @default(uuid())
+  createdBy      String
+  admin          User              @relation(fields: [createdBy], references: [id])
+  kind           AssessmentKind
+  title          String
+  topic          String?           // CODING only
+  difficulty     Difficulty
+  description    String            // Markdown
+  allowCopyPaste Boolean           @default(false) // CODING only
+  language       Language?         // PROJECT only
+  doneWhen       Json?             // PROJECT only - string[]
+  referenceFiles Json?             // PROJECT only - [{ path, contentBase64 }]
+  solutionFiles  Json?             // PROJECT only - admin-only reference fix
+  testCases      LibraryTestCase[] // CODING only
+  createdAt      DateTime          @default(now())
+}
+
+model LibraryTestCase {
+  id               String         @id @default(uuid())
+  libraryProblemId String
+  libraryProblem   LibraryProblem @relation(fields: [libraryProblemId], references: [id])
+  input            String
+  expected         String
+  isHidden         Boolean        @default(false)
+  category         String         @default("STANDARD")
+  weight           Float          @default(1)
+  isCritical       Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+}
+
+model Session {
+  id           String           @id @default(uuid())
+  assessmentId String
+  assessment   Assessment       @relation(fields: [assessmentId], references: [id])
+  candidateId  String
+  candidate    User             @relation(fields: [candidateId], references: [id])
+  inviteTokenId String?          @unique
+  inviteToken   InviteToken?     @relation(fields: [inviteTokenId], references: [id])
+  candidateName String?
+  language     Language
+  status       SessionStatus    @default(PENDING)
+  // Snapshot of Assessment.aiAssistantMode taken at session creation. The
+  // gateway enforces this - not the live assessment value - so an in-flight
+  // attempt cannot have its conditions changed underneath it, and the audit
+  // record stays truthful after the assessment is later edited.
+  aiAssistantMode AiAssistantMode @default(DISABLED)
+  // Snapshot of Assessment.scoringStrictness taken at session creation.
+  // MEDIUM preserves the prior behavior for sessions created before this field existed.
+  scoringStrictness String        @default("MEDIUM")
+  currentCode  String           @default("") // auto-saved continuously
+  startedAt    DateTime?
+  submittedAt  DateTime?
+  expiresAt    DateTime?
+  score        SessionScore?
+  logs         InteractionLog[]
+  runEvents    RunEvent[]
+  proctorEvents ProctorEvent[]
+  proctorMedia ProctorMedia[]
+  mobilePairing MobilePairing?
+  feedback     SessionFeedback?
+}
+
+model SessionFeedback {
+  id                         String   @id @default(uuid())
+  sessionId                  String   @unique
+  session                    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  overallExperience          Int
+  instructionsClarity        Int
+  difficultyRelevance        Int
+  platformUsability          Int
+  technicalPerformance       Int
+  codingEnvironment          Int
+  aiAssistantUsefulness      Int
+  aiAssistantUsage           String?
+  proctoringExperience       Int
+  fairness                   Int
+  recommendationScore        Int
+  assessmentName             String?
+  taskWhereIssueOccurred     String?
+  technicalIssueType         String?
+  mayContact                 Boolean  @default(false)
+  comments                   String?
+  submittedAt                DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model RunEvent {
+  id        String   @id @default(uuid())
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  problemId String
+  status    String
+  passed    Int
+  failed    Int
+  codeSnapshot String @default("")
+  createdAt DateTime @default(now())
+
+  @@index([sessionId, problemId, createdAt])
+}
+
+model MobilePairing {
+  id        String    @id @default(uuid())
+  sessionId String    @unique
+  session   Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  pairedAt  DateTime?
+  lastSeenAt DateTime?
+  deviceFingerprint String?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([expiresAt])
+}
+
+model ProctorEvent {
+  id        String   @id @default(uuid())
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  source    String
+  eventType String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([sessionId, createdAt])
+  @@index([expiresAt])
+}
+
+model ProctorMedia {
+  id          String   @id @default(uuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  kind        String
+  driveFileId String   @unique
+  mimeType    String
+  sizeBytes   Int
+  capturedAt  DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([sessionId, capturedAt])
+  @@index([expiresAt])
+}
+
+model SessionScore {
+  id                   String   @id @default(uuid())
+  sessionId            String   @unique
+  session              Session  @relation(fields: [sessionId], references: [id])
+  codeCorrectnessScore Float    // 0-100
+  aiuScores            Json     // { prompt_quality: 72, iteration_efficiency: 65, ... }
+  aiuTotalScore        Float    // 0-100
+  // PROJECT kind only - the Solution Quality Score breakdown (LLM-judge, per task).
+  // { tasks: [{ taskId, functional_correctness, regression_safety, solution_alignment, fix_scope_quality, rationale }] }
+  // Null for CODING sessions. Never returned to candidates.
+  projectScores        Json?
+  totalScore           Float    // 0-100
+  // LEGACY identifies scores created before rubric versioning was introduced.
+  rubricVersion        String   @default("LEGACY")
+  scoreEvidence        Json?
+  scoredAt             DateTime @default(now())
+}
+
+model InteractionLog {
+  id           String   @id @default(uuid())
+  sessionId    String
+  session      Session  @relation(fields: [sessionId], references: [id])
+  turnNumber   Int
+  activeFile   String?
+  contextSnapshot String?
+  aiEdits      Json?
+  promptText   String
+  responseText String
+  timestamp    DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model SystemConfig {
+  id                     String   @id @default("singleton")
+  openrouterKeyEncrypted String?  // AES-256 encrypted
+  updatedAt              DateTime @updatedAt
+}

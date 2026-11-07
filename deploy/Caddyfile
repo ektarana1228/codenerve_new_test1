@@ -1,0 +1,73 @@
+apexcoder.io {
+	root * /srv/candidate
+
+	redir /login* https://candidate.apexcoder.io{uri}
+	redir /start* https://candidate.apexcoder.io{uri}
+	redir /system-check* https://candidate.apexcoder.io{uri}
+	redir /language* https://candidate.apexcoder.io{uri}
+	redir /assess* https://candidate.apexcoder.io{uri}
+	redir /complete* https://candidate.apexcoder.io{uri}
+	redir /mobile-proctor* https://candidate.apexcoder.io{uri}
+
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+candidate.apexcoder.io {
+	root * /srv/candidate
+
+	handle /api/v1/llm* {
+		reverse_proxy api-llm-gateway:3102
+	}
+	handle /api/v1/vscode* {
+		reverse_proxy vscode-orchestrator:3104
+	}
+	handle /vscode* {
+		reverse_proxy vscode-orchestrator:3104
+	}
+	handle /api* {
+		reverse_proxy api-core:3101
+	}
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+admin.apexcoder.io {
+	root * /srv/admin
+
+	handle /api/v1/admin* {
+		reverse_proxy api-core:3101
+	}
+	handle /api/v1/auth* {
+		reverse_proxy api-core:3101
+	}
+	handle /api/v1/reports* {
+		reverse_proxy api-core:3101
+	}
+	handle /api/v1/proctoring* {
+		reverse_proxy api-core:3101
+	}
+	handle /api/v1/problem-bank* {
+		reverse_proxy api-core:3101
+	}
+	handle /api/v1/project-bug-bank* {
+		reverse_proxy api-core:3101
+	}
+	handle /api/v1/library* {
+		reverse_proxy api-core:3101
+	}
+	handle /api/v1/assessments* {
+		reverse_proxy api-core:3101
+	}
+	handle /api/v1/sessions* {
+		reverse_proxy api-core:3101
+	}
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}

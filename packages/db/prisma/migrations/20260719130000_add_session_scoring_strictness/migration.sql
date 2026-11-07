@@ -1,0 +1,2 @@
+ALTER TABLE "Session"
+ADD COLUMN "scoringStrictness" TEXT NOT NULL DEFAULT 'MEDIUM';

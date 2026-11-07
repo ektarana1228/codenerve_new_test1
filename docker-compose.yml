@@ -1,0 +1,182 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: platform
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api-core:
+    build:
+      context: .
+      dockerfile: apps/api-core/Dockerfile
+      target: dev
+    ports:
+      - "3101:3101"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/platform
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret-min-32-chars-change-in-prod
+      MASTER_EMAIL: ${MASTER_EMAIL}
+      MASTER_PASSWORD: ${MASTER_PASSWORD}
+      NODE_ENV: development
+      PORT: "3101"
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-assessments@apexcoder.io}
+      SANDBOX_URL: http://host.docker.internal:3200
+      SANDBOX_MODE: local
+      SANDBOX_PYTHON_BIN: python3
+      PROCTOR_RETENTION_HOURS: "96"
+      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-}
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/gcs-service-account.json
+      CANDIDATE_BASE_URL: ${CANDIDATE_BASE_URL:-http://localhost:3000}
+      OPENROUTER_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+    volumes:
+      - ./apps/api-core/src:/app/apps/api-core/src
+      - ./sandbox/runner/src:/app/sandbox/runner/src
+      - ./packages:/app/packages
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./secrets/gcs-service-account.json:/run/secrets/gcs-service-account.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  api-llm-gateway:
+    build:
+      context: .
+      dockerfile: apps/api-llm-gateway/Dockerfile
+      target: dev
+    ports:
+      - "3102:3102"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/platform
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret-min-32-chars-change-in-prod
+      OPENROUTER_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      NODE_ENV: development
+      PORT: "3102"
+    volumes:
+      - ./apps/api-llm-gateway/src:/app/apps/api-llm-gateway/src
+      - ./packages:/app/packages
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  vscode-orchestrator:
+    build:
+      context: .
+      dockerfile: apps/vscode-orchestrator/Dockerfile
+      target: dev
+    # Dev: run as root so the mounted Docker socket is reachable. In production,
+    # prefer `group_add: ["<host docker gid>"]` over root to keep least-privilege.
+    user: root
+    ports:
+      - "3104:3104"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/platform
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret-min-32-chars-change-in-prod
+      OPENROUTER_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      NODE_ENV: development
+      PORT: "3104"
+      VSCODE_IMAGE: gitpod/openvscode-server:1.102.3
+      # PROJECT (OpenCode) sessions use a purpose-built image. Build it first:
+      #   docker build -f apps/vscode-orchestrator/project.Dockerfile \
+      #     -t aisd/openvscode-opencode:latest .
+      VSCODE_PROJECT_IMAGE: aisd/openvscode-opencode:latest
+      # docker = real per-session VS Code containers (default). Override with
+      # `VSCODE_MODE=stub docker compose up` for e2e / Docker-less environments.
+      VSCODE_MODE: ${VSCODE_MODE:-docker}
+      # CODING containers join this internal (no-egress) network; the orchestrator
+      # reaches them by name. Pre-pull VSCODE_IMAGE on the host:
+      #   docker pull gitpod/openvscode-server:1.102.3
+      VSCODE_NETWORK: aisd_vscode-net
+      # PROJECT (OpenCode) containers join this egress-capable network so OpenCode
+      # can reach the model provider. The orchestrator sits on it too (proxies by name).
+      VSCODE_PROJECT_NETWORK: aisd_vscode-egress-net
+      VSCODE_MEMORY_MB: "512"
+      VSCODE_CPU_QUOTA: "100000"
+    volumes:
+      - ./apps/vscode-orchestrator/src:/app/apps/vscode-orchestrator/src
+      - ./packages:/app/packages
+      # Needed to launch/manage the per-session openvscode-server containers.
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - default
+      - vscode-net
+      - vscode-egress-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-aiu:
+    build:
+      context: .
+      dockerfile: apps/worker-aiu/Dockerfile
+      target: dev
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/platform
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret-min-32-chars-change-in-prod
+      LLM_GATEWAY_URL: http://api-llm-gateway:3102
+      NODE_ENV: development
+    volumes:
+      - ./apps/worker-aiu/src:/app/apps/worker-aiu/src
+      - ./packages:/app/packages
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api-llm-gateway:
+        condition: service_started
+
+volumes:
+  postgres_data:
+
+networks:
+  # Default bridge for the app services (DB, Redis, APIs).
+  default:
+  # Isolated network the per-session VS Code containers join. `internal: true`
+  # gives them no route to the internet — an anti-exfiltration boundary for the
+  # assessment. The orchestrator sits on both networks (fixed name so the
+  # docker-CLI `--network` flag matches regardless of compose project name).
+  vscode-net:
+    name: aisd_vscode-net
+    internal: true
+  # Egress-capable network for PROJECT (OpenCode) session containers — OpenCode
+  # must reach the model provider. NOT internal. Kept separate from CODING's
+  # isolated network so the exfiltration boundary still holds for coding sessions.
+  vscode-egress-net:
+    name: aisd_vscode-egress-net

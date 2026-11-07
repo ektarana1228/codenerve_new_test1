@@ -1,0 +1,2 @@
+ALTER TABLE "SessionScore"
+ADD COLUMN "rubricVersion" TEXT NOT NULL DEFAULT 'LEGACY';
