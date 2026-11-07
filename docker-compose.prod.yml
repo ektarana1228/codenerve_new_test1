@@ -51,6 +51,7 @@ services:
       TEAM_SMTP_USER: ${TEAM_SMTP_USER:-}
       TEAM_SMTP_PASS: ${TEAM_SMTP_PASS:-}
       SANDBOX_URL: http://localhost:3200
+      SANDBOX_IMAGE_NODE: aisd/sandbox-node:latest
       PROCTOR_RETENTION_HOURS: ${PROCTOR_RETENTION_HOURS:-72}
       GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-}
       GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/gcs-service-account.json

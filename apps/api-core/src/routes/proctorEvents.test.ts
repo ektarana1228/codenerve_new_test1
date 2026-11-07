@@ -6,6 +6,8 @@ jest.mock('@platform/db', () => ({
     mobilePairing: { findUnique: jest.fn(), deleteMany: jest.fn() },
   },
 }))
+jest.mock('./sessions', () => ({ sessionRoutes: jest.fn() }))
+jest.mock('../lib/retention', () => ({ startRetentionCleanup: jest.fn() }))
 
 import jwt from 'jsonwebtoken'
 import { prisma } from '@platform/db'

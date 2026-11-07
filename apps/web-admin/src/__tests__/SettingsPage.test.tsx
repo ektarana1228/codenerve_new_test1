@@ -13,6 +13,12 @@ const mockSaveOpenRouterKey = vi.fn()
 vi.mock('../api/client', () => ({
   getSystemConfig: () => mockGetSystemConfig(),
   saveOpenRouterKey: (...args: unknown[]) => mockSaveOpenRouterKey(...args),
+  listAdminSignupRequests: vi.fn(),
+  listAdminAccounts: vi.fn(),
+  createAdminAccount: vi.fn(),
+  revokeAdminAccount: vi.fn(),
+  approveAdminSignupRequest: vi.fn(),
+  rejectAdminSignupRequest: vi.fn(),
   ApiException: class ApiException extends Error {
     code: string
     constructor(code: string, message: string) {
@@ -118,7 +124,7 @@ describe('SettingsPage - no key configured', () => {
   it('warning banner has amber/warning styling', async () => {
     renderPage()
     const banner = await screen.findByText(/no api key configured/i)
-    expect(banner.className).toContain('text-amber-700')
+    expect(banner.className).toContain('text-[color:var(--status-warn)]')
   })
 
   it('shows "API Key" label (not "Replace Key") when no key exists', async () => {
@@ -173,7 +179,7 @@ describe('SettingsPage - save flow', () => {
     fireEvent.click(screen.getByRole('button', { name: /save key/i }))
 
     const notice = await screen.findByText(/api key saved securely/i)
-    expect(notice.className).toContain('text-green-700')
+    expect(notice.className).toContain('text-[color:var(--signal-green)]')
   })
 
   it('calls saveOpenRouterKey with the entered key value', async () => {

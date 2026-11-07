@@ -38,6 +38,12 @@ export function buildApp(env: ApiCoreEnv, options: FastifyServerOptions = {}) {
   app.setErrorHandler(async (error, request, reply) => {
     request.log.error({ err: error, path: request.url, method: request.method }, 'Unhandled server error')
     if (!reply.sent) {
+      const statusCode = error && typeof error === 'object' && 'statusCode' in error ? error.statusCode : undefined
+      if (typeof statusCode === 'number' && statusCode >= 400 && statusCode < 500) {
+        return reply.status(statusCode).send({
+          error: { code: 'VALIDATION_ERROR', message: error instanceof Error ? error.message : 'Invalid request' },
+        })
+      }
       reply.status(500).send({
         error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' },
       })

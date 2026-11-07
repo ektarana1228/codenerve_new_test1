@@ -37,13 +37,13 @@ const LANG_CONFIG: Record<SandboxLanguage, LangConfig> = {
     localBin: PYTHON_BIN,
   },
   javascript: {
-    image: process.env.SANDBOX_IMAGE_NODE ?? 'node:20-slim',
+    image: process.env.SANDBOX_IMAGE_NODE ?? 'aisd/sandbox-node:latest',
     filename: 'solution.js',
     command: ['node', '/tmp/solution.js'],
     localBin: 'node',
   },
   typescript: {
-    image: process.env.SANDBOX_IMAGE_NODE ?? 'node:20-slim',
+    image: process.env.SANDBOX_IMAGE_NODE ?? 'aisd/sandbox-node:latest',
     filename: 'solution.ts',
     command: ['tsx', '/tmp/solution.ts'],
     localBin: 'tsx',
@@ -219,18 +219,6 @@ async function runSingleTestCase(
   }
 }
 
-// Returns true when the stderr/message looks like a Docker availability or
-// permission problem that should fall back to local execution in development.
-function shouldFallbackToLocal(msg: string): boolean {
-  const normalized = msg.toLowerCase()
-  return (
-    normalized.includes('enoent') ||
-    normalized.includes('cannot connect to the docker daemon') ||
-    normalized.includes('permission denied while trying to connect to the docker daemon') ||
-    normalized.includes('permission denied while trying to connect to the docker api')
-  )
-}
-
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function executeCode(request: ExecutionRequest): Promise<ExecutionResult> {
@@ -238,7 +226,6 @@ export async function executeCode(request: ExecutionRequest): Promise<ExecutionR
   const extraFiles = request.extraFiles
 
   let anyTimeout = false
-  let forceLocal = LOCAL_MODE
 
   const results: Array<{
     testCaseId: string
@@ -252,10 +239,10 @@ export async function executeCode(request: ExecutionRequest): Promise<ExecutionR
     let run: RunResult
 
     try {
-      if (forceLocal) {
+      if (LOCAL_MODE) {
         run = await runLocalTestCase(config, request.code, tc.input, tc.expected, extraFiles)
       } else {
-        // Try Docker first
+        // Docker failure must never execute submitted code on the host.
         let dockerRun: RunResult
         try {
           dockerRun = await runSingleTestCase(config, request.code, tc.input, tc.expected, extraFiles)
@@ -265,14 +252,7 @@ export async function executeCode(request: ExecutionRequest): Promise<ExecutionR
           dockerRun = { status: 'error', stdout: '', stderr: msg, timedOut: false, durationMs: 0 }
         }
 
-        // If Docker is unavailable or inaccessible, fall back to local permanently.
-        if (dockerRun.status === 'error' && shouldFallbackToLocal(dockerRun.stderr)) {
-          console.warn('[sandbox] Docker unavailable (%s) — switching to local execution', dockerRun.stderr.split('\n')[0])
-          forceLocal = true
-          run = await runLocalTestCase(config, request.code, tc.input, tc.expected, extraFiles)
-        } else {
-          run = dockerRun
-        }
+        run = dockerRun
       }
     } catch (err) {
       run = {

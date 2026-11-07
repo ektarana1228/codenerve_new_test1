@@ -147,7 +147,7 @@ const families: Family[] = [
   {
     slug: 'target-revenue', name: 'Target Revenue Subarray', topic: 'Hash Maps', difficulty: 'MEDIUM', timeComplexity: 'O(n)', spaceComplexity: 'O(n)',
     referenceSolutions: solutions(`${parseNumbersPy}\nt=a[0];x=a[2:];c={0:1};s=0;ans=0\nfor v in x:\n s+=v;ans+=c.get(s-t,0);c[s]=c.get(s,0)+1\nprint(ans)`, `${parseNumbersJs}\nconst t=a[0],x=a.slice(2),c=new Map([[0,1]]);let s=0,ans=0;for(const v of x){s+=v;ans+=c.get(s-t)||0;c.set(s,(c.get(s)||0)+1)}console.log(ans);`),
-    build: (v, c) => { const t=v%10+5; return { description: `# ${c} Target Revenue\n\nGiven a target revenue \`k\` and \`n\` daily revenue entries, find the total number of continuous daily subarrays whose sum equals exactly \`k\`.\n\nInput: \`k n\`, then \`n\` integers.`, testCases: [tc(`${t} 4\n1 -1 ${t} 0`, '2'), tc(`3 3\n1 1 1`, '2'), tc(`5 4\n2 3 -2 5`, '2', true), tc(`0 3\n0 0 0`, '6', true)] } },
+    build: (v, c) => { const t=v%10+5; return { description: `# ${c} Target Revenue\n\nGiven a target revenue \`k\` and \`n\` daily revenue entries, find the total number of continuous daily subarrays whose sum equals exactly \`k\`.\n\nInput: \`k n\`, then \`n\` integers.`, testCases: [tc(`${t} 4\n1 -1 ${t} 0`, '4'), tc(`3 3\n1 1 1`, '1'), tc(`5 4\n2 3 -2 5`, '2', true), tc(`0 3\n0 0 0`, '6', true)] } },
   },
   {
     slug: 'max-storage-volume', name: 'Max Storage Volume', topic: 'Two Pointers', difficulty: 'MEDIUM', timeComplexity: 'O(n)', spaceComplexity: 'O(1)',

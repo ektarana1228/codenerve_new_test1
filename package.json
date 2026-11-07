@@ -12,9 +12,10 @@
     "dev": "turbo run dev",
     "dev:admin": "npm run dev -w @aisd/web-admin",
     "dev:candidate": "npm run dev -w @aisd/web-candidate",
-    "backend": "node -e \"const fs=require('fs');const p='packages/db/.env';if(!fs.existsSync(p))fs.copyFileSync(p+'.example',p)\" && docker compose up -d --wait postgres redis && npm run db:generate -w @platform/db && npm run db:migrate:deploy -w @platform/db && npm run db:seed -w @platform/db && docker compose up -d",
+    "backend": "node -e \"const fs=require('fs');const p='packages/db/.env';if(!fs.existsSync(p))fs.copyFileSync(p+'.example',p)\" && npm run sandbox:build && docker compose up -d --wait postgres redis && npm run db:generate -w @platform/db && npm run db:migrate:deploy -w @platform/db && npm run db:seed -w @platform/db && docker compose up -d",
+    "sandbox:build": "docker build -f sandbox/dockerfiles/Dockerfile.node -t aisd/sandbox-node:latest .",
     "backend:down": "docker compose down",
-    "test": "turbo run test",
+    "test": "turbo run test --filter=!@aisd/e2e",
     "lint": "turbo run lint",
     "test:e2e": "npm run test --workspace=packages/e2e"
   },

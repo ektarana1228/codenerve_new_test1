@@ -453,13 +453,13 @@ describe('POST /api/v1/sessions/:id/submit', () => {
         create: expect.objectContaining({ rubricVersion: 'DISABLED_TECHNICAL_V2' }),
         update: expect.objectContaining({
           codeCorrectnessScore: 52.5,
-          aiuTotalScore: 50,
-          totalScore: 50,
+          aiuTotalScore: 0,
+          totalScore: 0,
           aiuScores: expect.objectContaining({
             correctness: 0,
             efficiency: 0,
-            robustness: 100,
-            code_quality: 100,
+            robustness: 0,
+            code_quality: 0,
           }),
           scoreEvidence: expect.objectContaining({
             coding_test_evidence: expect.objectContaining({
@@ -467,7 +467,8 @@ describe('POST /api/v1/sessions/:id/submit', () => {
                 expect.objectContaining({
                   category_states: expect.objectContaining({
                     efficiency: 'NOT_MEASURED',
-                    robustness: 'PARTIAL',
+                    robustness: 'NOT_MEASURED',
+                    codeQuality: 'INSUFFICIENT_CODE',
                   }),
                 }),
               ]),

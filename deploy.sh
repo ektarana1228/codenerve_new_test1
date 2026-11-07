@@ -43,6 +43,10 @@ echo "Building VS Code project image..."
 docker build -f "$APP_DIR/apps/vscode-orchestrator/project.Dockerfile" \
   -t aisd/openvscode-opencode:latest "$APP_DIR"
 
+echo "Building TypeScript sandbox image..."
+docker build -f "$APP_DIR/sandbox/dockerfiles/Dockerfile.node" \
+  -t aisd/sandbox-node:latest "$APP_DIR"
+
 echo "Rebuilding and starting services..."
 # --build rebuilds images from the pulled source; --force-recreate guarantees the
 # containers restart on the freshly built image (no stale container from a prior deploy).

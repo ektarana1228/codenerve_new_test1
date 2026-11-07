@@ -140,8 +140,9 @@ npm run dev:candidate   # http://localhost:3000
 npm run dev:admin       # http://localhost:3001
 ```
 
-`npm run backend` brings up Postgres + Redis, applies Prisma migrations, seeds the
-database, then starts all backend services in Docker. It is idempotent — safe
+`npm run backend` builds the TypeScript sandbox image, brings up Postgres + Redis,
+applies Prisma migrations, seeds the database, then starts all backend services
+in Docker. It is idempotent — safe
 to re-run. Stop the backend with `npm run backend:down`.
 
 > Run the two frontends in **separate terminals** (`dev:candidate`, `dev:admin`).
@@ -171,11 +172,12 @@ to re-run. Stop the backend with `npm run backend:down`.
 
 | Command | Description |
 |---|---|
-| `npm run backend` | Start DB + Redis, migrate, seed, then all API services (Docker). Idempotent. |
+| `npm run backend` | Build the sandbox image, start DB + Redis, migrate, seed, then start the API services (Docker). |
+| `npm run sandbox:build` | Rebuild the Node/TypeScript sandbox image. |
 | `npm run backend:down` | Stop all backend Docker services |
 | `npm run dev:candidate` | Start the candidate frontend on http://localhost:3000 |
 | `npm run dev:admin` | Start the admin frontend on http://localhost:3001 |
-| `npm run build` / `npm run test` / `npm run lint` | Turborepo build / test / lint across all packages |
+| `npm run build` / `npm test` / `npm run lint` | Turborepo build / local tests / type checks. End-to-end tests run separately. |
 | `npm run test:e2e` | Run the end-to-end (Playwright) test suite |
 
 ---
@@ -275,5 +277,3 @@ Built for **AI Coding: Modern Software Development** (TUM, module `CITHN2015`, 6
 Topic A: *Online AI-Coding Assessment / Interview Platform*.
 
 This is an academic course project and is not licensed for production or commercial use.
-#   c o d e n e r v e _ n e w _ t e s t 1  
- 

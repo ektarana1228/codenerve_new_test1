@@ -178,15 +178,13 @@ describe('executeCode — runtime error', () => {
   })
 })
 
-describe('executeCode — Docker fallback', () => {
-  test('falls back to local execution when Docker API access is denied', async () => {
+describe('executeCode — Docker unavailable', () => {
+  test('does not execute code locally when Docker API access is denied', async () => {
     mockExecFileImpl.mockImplementationOnce(
       (_cmd: string, _args: string[], cb: (err: Error) => void) => {
         cb(new Error('permission denied while trying to connect to the Docker API at unix:///var/run/docker.sock'))
       },
     )
-
-    mockSpawnImpl.mockImplementation(() => makeFakeProcess('Hello World\n', 0))
 
     const result = await executeCode({
       ...BASE_REQUEST,
@@ -194,8 +192,10 @@ describe('executeCode — Docker fallback', () => {
     })
 
     expect(result.status).toBe('completed')
-    expect(result.passed).toBe(1)
-    expect(result.results[0]!.status).toBe('pass')
+    expect(result.passed).toBe(0)
+    expect(result.results[0]!.status).toBe('error')
+    expect(result.results[0]!.stderr).toContain('permission denied')
+    expect(mockSpawnImpl).not.toHaveBeenCalled()
   })
 })
 

@@ -31,6 +31,7 @@ services:
       context: .
       dockerfile: apps/api-core/Dockerfile
       target: dev
+    user: root
     ports:
       - "3101:3101"
     environment:
@@ -49,8 +50,7 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-assessments@apexcoder.io}
       SANDBOX_URL: http://host.docker.internal:3200
-      SANDBOX_MODE: local
-      SANDBOX_PYTHON_BIN: python3
+      SANDBOX_IMAGE_NODE: aisd/sandbox-node:latest
       PROCTOR_RETENTION_HOURS: "96"
       GCS_BUCKET_NAME: ${GCS_BUCKET_NAME:-}
       GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/gcs-service-account.json
