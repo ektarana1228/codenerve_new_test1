@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -61,7 +61,7 @@ services:
       - ./sandbox/runner/src:/app/sandbox/runner/src
       - ./packages:/app/packages
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./secrets/gcs-service-account.json:/run/secrets/gcs-service-account.json:ro
+      - ./secrets:/run/secrets:ro
     depends_on:
       postgres:
         condition: service_healthy

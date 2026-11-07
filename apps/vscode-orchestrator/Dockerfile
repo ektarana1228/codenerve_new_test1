@@ -24,7 +24,7 @@ RUN npm ci
 FROM base AS dev
 COPY . .
 RUN npm run db:generate -w packages/db
-RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
+RUN addgroup -S app && adduser -S app -G app
 USER app
 EXPOSE 3104
 CMD ["npx", "tsx", "watch", "apps/vscode-orchestrator/src/index.ts"]

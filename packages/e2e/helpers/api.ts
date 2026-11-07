@@ -3,7 +3,7 @@
  * Used by global-setup and fixtures for seeding and token-injection.
  */
 
-const AUTH_URL = process.env.AUTH_API_URL ?? 'http://localhost:3100'
+const AUTH_URL = process.env.AUTH_API_URL ?? 'http://localhost:3101'
 
 export type AdminLoginResponse = {
   data: { access_token: string }

@@ -145,6 +145,15 @@ applies Prisma migrations, seeds the database, then starts all backend services
 in Docker. It is idempotent — safe
 to re-run. Stop the backend with `npm run backend:down`.
 
+If port 5432 is already in use, set `POSTGRES_HOST_PORT` and a matching
+`DATABASE_URL` before running the backend. For example, in PowerShell:
+
+```powershell
+$env:POSTGRES_HOST_PORT = '5434'
+$env:DATABASE_URL = 'postgresql://postgres:password@localhost:5434/platform'
+npm run backend
+```
+
 > Run the two frontends in **separate terminals** (`dev:candidate`, `dev:admin`).
 > The combined `npm run dev` (turbo) multiplexes both dev servers in one process and
 > may fail to bind port 3001 — the per-app scripts are reliable.

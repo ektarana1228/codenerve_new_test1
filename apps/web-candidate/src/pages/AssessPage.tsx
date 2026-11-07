@@ -11,7 +11,7 @@ import {
 } from 'dockview-react'
 import 'dockview-react/dist/styles/dockview.css'
 import { useSessionStore, serializeAllFiles } from '../store/session'
-import { submitSession, saveCode, getSession, logProctoringEvent, uploadProctoringRecording, uploadProctoringScreenshot, getMobilePairing, exitSession } from '../api/client'
+import { submitSession, saveCode, logProctoringEvent, uploadProctoringRecording, uploadProctoringScreenshot, getMobilePairing, exitSession } from '../api/client'
 import { ThemeToggle, Logo } from '@platform/web-shared'
 import { MonacoEditor } from '../components/MonacoEditor'
 import { Timer } from '../components/Timer'
@@ -248,12 +248,12 @@ function CodingEditor({ readOnly, onSaved }: { readOnly: boolean; onSaved: () =>
   const code = useSessionStore((s) => s.code)
   const activeFile = useSessionStore((s) => s.activeFile)
   const setCode = useSessionStore((s) => s.setCode)
-  const restoreFromServer = useSessionStore((s) => s.restoreFromServer)
   const allowCopyPaste = useSessionStore((s) => s.assessment?.allow_copy_paste ?? false)
 
   const [notice, setNotice] = useState<string | null>(null)
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const disconnectedRef = useRef(false)
 
   const flashNotice = (msg: string) => {
     setNotice(msg)
@@ -262,7 +262,7 @@ function CodingEditor({ readOnly, onSaved }: { readOnly: boolean; onSaved: () =>
   }
 
   const save = () => {
-    if (!session_id || status !== 'active') return
+    if (!session_id || status !== 'active' || disconnectedRef.current) return
     saveCode(session_id, serializeStoreCode()).then(onSaved).catch(() => {})
   }
 
@@ -282,15 +282,21 @@ function CodingEditor({ readOnly, onSaved }: { readOnly: boolean; onSaved: () =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session_id, status])
 
-  // Restore code from the server on reconnection - the server is the source of truth.
+  // ConnectionBanner restores the server copy before it emits connection-restored.
+  // Hold autosave until then so an offline edit cannot overwrite that copy.
   useEffect(() => {
+    const onLost = () => { disconnectedRef.current = true }
     const onRestored = () => {
-      if (!session_id) return
-      getSession(session_id).then((res) => restoreFromServer(res.data.current_code)).catch(() => {})
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      disconnectedRef.current = false
     }
+    window.addEventListener('connection-lost', onLost)
     window.addEventListener('connection-restored', onRestored)
-    return () => window.removeEventListener('connection-restored', onRestored)
-  }, [session_id, restoreFromServer])
+    return () => {
+      window.removeEventListener('connection-lost', onLost)
+      window.removeEventListener('connection-restored', onRestored)
+    }
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -343,9 +349,9 @@ function ProjectEditorPanel() {
   const setActiveFile = useSessionStore((s) => s.setActiveFile)
   const addFile = useSessionStore((s) => s.addFile)
   const removeFile = useSessionStore((s) => s.removeFile)
-  const restoreFromServer = useSessionStore((s) => s.restoreFromServer)
   const allowCopyPaste = useSessionStore((s) => s.assessment?.allow_copy_paste ?? false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const disconnectedRef = useRef(false)
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [savedVisible, setSavedVisible] = useState(false)
   const [filesCollapsed, setFilesCollapsed] = useState(false)
@@ -359,7 +365,7 @@ function ProjectEditorPanel() {
   }
 
   const save = () => {
-    if (!session_id || status !== 'active') return
+    if (!session_id || status !== 'active' || disconnectedRef.current) return
     saveCode(session_id, serializeStoreCode()).then(flashSaved).catch(() => {})
   }
 
@@ -377,13 +383,18 @@ function ProjectEditorPanel() {
   }, [session_id, status])
 
   useEffect(() => {
+    const onLost = () => { disconnectedRef.current = true }
     const onRestored = () => {
-      if (!session_id) return
-      getSession(session_id).then((res) => restoreFromServer(res.data.current_code)).catch(() => {})
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      disconnectedRef.current = false
     }
+    window.addEventListener('connection-lost', onLost)
     window.addEventListener('connection-restored', onRestored)
-    return () => window.removeEventListener('connection-restored', onRestored)
-  }, [session_id, restoreFromServer])
+    return () => {
+      window.removeEventListener('connection-lost', onLost)
+      window.removeEventListener('connection-restored', onRestored)
+    }
+  }, [])
 
   useEffect(() => () => {
     if (debounceRef.current) clearTimeout(debounceRef.current)

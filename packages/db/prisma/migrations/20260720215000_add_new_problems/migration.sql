@@ -6,8 +6,8 @@ BEGIN
     SELECT id INTO v_user_id FROM "User" LIMIT 1;
     IF v_user_id IS NULL THEN
         v_user_id := gen_random_uuid()::text;
-        INSERT INTO "User" (id, email, "passwordHash", role, "createdAt", "updatedAt") 
-        VALUES (v_user_id, 'admin@example.com', 'hash', 'ADMIN', NOW(), NOW());
+        INSERT INTO "User" (id, email, "passwordHash", role, "createdAt")
+        VALUES (v_user_id, 'admin@example.com', 'hash', 'ADMIN', NOW());
     END IF;
 
     -- CODING PROBLEM 1
@@ -73,9 +73,9 @@ Input: `k n`, then `n` integers.$desc$, false, NOW());
 
     INSERT INTO "LibraryTestCase" ("id", "libraryProblemId", "input", "expected", "isHidden", "createdAt")
     VALUES (gen_random_uuid()::text, v_prob_id, $tc$5 4
-1 -1 5 0$tc$, $tc$2$tc$, false, NOW()),
+1 -1 5 0$tc$, $tc$4$tc$, false, NOW()),
            (gen_random_uuid()::text, v_prob_id, $tc$3 3
-1 1 1$tc$, $tc$2$tc$, false, NOW()),
+1 1 1$tc$, $tc$1$tc$, false, NOW()),
            (gen_random_uuid()::text, v_prob_id, $tc$0 3
 0 0 0$tc$, $tc$6$tc$, true, NOW());
 

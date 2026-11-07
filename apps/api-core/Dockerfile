@@ -38,7 +38,7 @@ FROM base AS dev
 COPY . .
 RUN npm run db:generate -w packages/db
 RUN npm run build -w sandbox/runner
-RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
+RUN addgroup -S app && adduser -S app -G app
 USER app
 EXPOSE 3101
 CMD ["npx", "tsx", "watch", "apps/api-core/src/index.ts"]
