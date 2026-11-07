@@ -21,7 +21,7 @@ RUN npm ci
 FROM base AS dev
 COPY . .
 RUN npm run db:generate -w packages/db
-RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
+RUN addgroup -S app && adduser -S app -G app
 USER app
 CMD ["sh", "-c", "npm run db:generate -w packages/db && exec npx tsx watch apps/worker-aiu/src/index.ts"]
 

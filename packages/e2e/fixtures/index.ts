@@ -45,13 +45,13 @@ export { expect } from '@playwright/test'
 // ─── LLM chat mock ────────────────────────────────────────────────────────────
 
 /**
- * Intercepts POST /api/v1/llm/chat on a page and returns stub responses.
+ * Intercepts the candidate assistant endpoint and returns stub responses.
  * The turn_number increments with each call so the UI can render correct
  * conversation order.
  */
 export async function mockLlmChat(page: Page): Promise<void> {
   let turn = 0
-  await page.route('**/api/v1/llm/chat', async (route) => {
+  await page.route('**/api/v1/llm/agent', async (route) => {
     turn++
     await route.fulfill({
       status: 200,
@@ -59,6 +59,7 @@ export async function mockLlmChat(page: Page): Promise<void> {
       body: JSON.stringify({
         data: {
           response: `Mock AI response #${turn}. Here is some helpful guidance for your code.`,
+          edits: {},
           turn_number: turn,
         },
       }),
@@ -83,8 +84,8 @@ export async function mockCodeRun(page: Page): Promise<void> {
           passed: 2,
           failed: 0,
           results: [
-            { test_case_id: 'mock-tc-1', status: 'pass', stdout: '3\n', stderr: '' },
-            { test_case_id: 'mock-tc-2', status: 'pass', stdout: '0\n', stderr: '' },
+            { testCaseId: 'mock-tc-1', status: 'pass', stdout: '3\n', stderr: '' },
+            { testCaseId: 'mock-tc-2', status: 'pass', stdout: '0\n', stderr: '' },
           ],
         },
       }),

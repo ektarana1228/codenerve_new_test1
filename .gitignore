@@ -38,3 +38,6 @@ pnpm-debug.log*
 
 # Testing
 coverage/
+packages/e2e/.test-data.json
+packages/e2e/playwright-report/
+packages/e2e/test-results/
